@@ -1,0 +1,14 @@
+name = "lightspeed-stream-maker"
+version = "0.1.0"
+license = "MIT"
+author = "husky (floppydiskette)"
+maintainer = "fekhesk@pm.me"
+copyright = "copyright 2022, husky"
+[build]
+auto-executables = true
+auto-tests = true
+auto-examples = true
+[install]
+library = false
+[dependencies]
+fortran-curl = { git = "https://github.com/interkosmos/fortran-curl.git" }
