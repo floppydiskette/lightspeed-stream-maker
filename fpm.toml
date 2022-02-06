@@ -11,4 +11,4 @@ auto-examples = true
 [install]
 library = false
 [dependencies]
-fortran-curl = { git = "https://github.com/interkosmos/fortran-curl.git" }
+json-fortran = { git: "https://github.com/jacobwilliams/json-fortran" }

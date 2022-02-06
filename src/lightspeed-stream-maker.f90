@@ -1,114 +1,149 @@
 module lightspeed_stream_maker
+  use curl_fortran, only: curl
   implicit none
-  use :: curl, only: c_f_str_ptr
   private
 
-  public :: cb
-contains
-  function cb (ptr, size, nmemb, client_data) bind(c)
-    !! stolen from examples (:
-    !! author: Philipp Engel
-    !! license: ISC
-    use, intrinsic :: iso_c_binding, only: c_associated, c_f_pointer, c_ptr, c_size_t
-    type(c_ptr),            intent(in), value :: ptr               !! C pointer to a chunk of the response.
-    integer(kind=c_size_t), intent(in), value :: size              !! Always 1.
-    integer(kind=c_size_t), intent(in), value :: nmemb             !! Size of the response chunk.
-    type(c_ptr),            intent(in), value :: client_data       !! C pointer to argument passed by caller.
-    integer(kind=c_size_t)                    :: response_callback !! Function return value.
-    type(response_type), pointer              :: response          !! Stores response.
-    character(len=:), allocatable             :: buf
+  public :: thingy
+  contains
+  subroutine thingy
+    implicit none
+    integer :: answer, len
+    character(len=:), allocatable :: req_body, req_path, req_headers, find, url
+    character(len=:), allocatable :: token, ftl_id
+    character(len=256) :: username, password, email, invite_code, cmd, response
 
-    response_callback = int(0, kind=c_size_t)
+    !! we need to send all requests to https://demo.lightspeed.tv/
+    url = 'https://demo.lightspeed.tv/'
 
-    ! Are the passed C pointers associated?
-    if (.not. c_associated(ptr)) return
-    if (.not. c_associated(client_data)) return
 
-    ! Convert C pointer to Fortran pointer.
-    call c_f_pointer(client_data, response)
-    if (.not. allocated(response%body)) response%body = ''
+    !! prompt user for username and password
+    print *, 'please enter email:'
+    read *, email
+    print *, 'please enter password:'
+    read *, password
+    print *, 'please enter desired username:'
+    read *, username
 
-    ! Convert C pointer to Fortran allocatable character.
-    call c_f_str_ptr(ptr, buf, nmemb)
-    if (.not. allocated(buf)) return
-    response%body = response%body // buf
-    deallocate (buf)
+    print *, "email: " // trim(email)
+    print *, "password: " // trim(password)
+    print *, "username: " // trim(username)
+    print *, "is this correct? (1 for yes, 0 for no)"
+    read(*, *) answer
 
-    ! Return number of received bytes.
-    response_callback = nmemb
-  end function cb
+    if (answer == 1) then
+      !! get length of email and password
+
+      !! string for req body 
+      req_body = '{"email":"' // trim(email) // '","password":"' // trim(password) // '"}'
+      !! string for req path
+      req_path = "auth/session/login"
+      !! string for req headers
+      req_headers = "Content-Type: application/json"
+
+      cmd = "-H '" // req_headers // "' -d '" // req_body // "' '" // url // req_path // "'"
+      !!print *, cmd
+      !! make request
+      response = curl('POST', cmd)
+      print *, response
+
+      !! get everything after token":"
+      find = '"token":"'
+      if (index(response, find) == 0) then
+        print *, "error: could not find token"
+        print *, "reason: " // response
+        return
+      else
+        !! get length of response
+        len = len_trim(response)
+        response = response(index(response, find) + len_trim(find) : len)
+      end if
+
+      !! get everything before ","name":"
+      find = '" "name":"'
+      if (index(response, find) == 0) then
+        print *, "error: could not find name"
+        return
+      else
+        !! get length of response
+        len = len_trim(response)
+        response = response(1 : index(response, find) - 1)
+      end if
+
+      token = response
+
+      req_body = '{"username":"' // trim(username) // '"}'
+      req_path = url // "users/@me"
+
+      cmd = "-H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
+
+      !! make a new request
+      response = curl('PUT ', cmd)
+
+
+      !! prompt user for invite code
+      print *, 'please enter invite code: '
+      read *, invite_code
+
+      req_body = '{"invite":"' // trim(invite_code) // '"}'
+      req_path = url // "streams"
+
+      cmd = "-H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
+
+      !! final request B)
+      response = curl('PUT ', cmd)
+
+      !! get everything after "ftl_id":"
+      find = '"ftl_id":"'
+      if (index(response, find) == 0) then
+        print *, "error: could not find ftl_id"
+        return
+      else
+        !! get length of response
+        len = len_trim(response)
+        ftl_id = response(index(response, find) + len_trim(find) : len)
+      end if
+
+      !! get everything before ","token":"
+      find = '" "token":"'
+      if (index(ftl_id, find) == 0) then
+        print *, "error: could not find token"
+        return
+      else
+        !! get length of response
+        len = len_trim(ftl_id)
+        ftl_id = ftl_id(1 : index(ftl_id, find) - 1)
+      end if
+
+      !! get everything after "token":"
+      find = '" "token":"'
+      if (index(response, find) == 0) then
+        print *, "error: could not find token"
+        return
+      else
+        !! get length of response
+        len = len_trim(response)
+        token = response(index(response, find) + len_trim(find) : len)
+      end if
+
+      !! get everything before "}
+      find = '"}'
+      if (index(token, find) == 0) then
+        print *, "error: could not find }"
+        return
+      else
+        !! get length of response
+        len = len_trim(token)
+        token = token(1 : index(token, find) - 1)
+      end if
+
+      !! print *, "response: ", response
+      print *, "if all went well, your stream should now be available at https://web.demo.lightspeed.tv/" // username
+      print *, "your stream key is: " // ftl_id // "-" // token
+
+      print *, "bye!"
+      
+    else
+      print *, "bye!"
+    end if
+  end subroutine thingy
 end module lightspeed_stream_maker
-
-program main
-  use, intrinsic :: iso_c_binding
-  use :: curl
-  use :: callback_http
-  implicit none
-
-  !! we need to send all requests to https://demo.lightspeed.tv/
-  character(len=*), parameter :: url = "https://demo.lightspeed.tv/"
-  type(c_ptr) :: curl_ptr
-  integer :: curl_code
-  type(response_type), target :: response
-
-  !! initialize curl
-  curl_ptr = curl_easy_init()
-  if (.not. c_associated(curl_ptr)) then
-    print *, "curl_easy_init() failed, fuck!" !! sorry for swearing don't tell my mom please
-    stop
-  end if
-
-  !! set default curl options
-  curl_code = curl_easy_setopt(curl_ptr, CURLOPT_DEFAULT_PROTOCOL, "https")
-  curl_code = curl_easy_setopt(curl_ptr, CURLOPT_TIMEOUT, 10)
-  curl_code = curl_easy_setopt(curl_ptr, CURLOPT_CONNECTTIMEOUT, 10)
-  curl_code = curl_easy_setopt(curl_ptr, CURLOPT_FOLLOWLOCATION, .true.)
-
-  !! set callback function
-  curl_code = curl_easy_setopt(curl_ptr, CURLOPT_WRITEFUNCTION, after_login)
-  curl_code = curl_easy_setopt(curl_ptr, CURLOPT_WRITEDATA, c_loc(response))
-
-  !! variables
-  character(128) :: username
-  character(128) :: password
-  character(128) :: email
-  character(1) :: answer
-
-  !! prompt user for username and password
-  print *, "please enter ur email: "
-  read(*, *) email
-  print *, "please enter ur password: "
-  read(*, *) password
-  print *, "please enter ur desired username: "
-  read(*, *) username
-
-  print *, "email: ", email
-  print *, "password: ", password
-  print *, "username: ", username
-  print *, "is this correct? (y/n)"
-  read(*, *) answer
-
-  if (answer == "y") then
-    !! get length of email and password
-    integer :: email_len = len_trim(email)
-    integer :: password_len = len_trim(password)
-    integer :: len_required = email_len + password_len + len_trim(username) + 26 ! 26 is the length of the string {"email":"","password":""}
-
-    !! string for req body
-    character(len=len_required) :: req_body = "{\"email\":\"" // email // "\",\"password\":\"" // password // "\"}"
-    !! string for req path
-    character(len=18) :: req_path = "auth/session/login"
-    !! string for req headers
-    character(len=30) :: req_headers = "Content-Type: application/json"
-
-    !! set curl options
-    curl_code = curl_easy_setopt(curl_ptr, CURLOPT_URL, url // req_path)
-    curl_code = curl_easy_setopt(curl_ptr, CURLOPT_POSTFIELDS, req_body)
-    curl_code = curl_easy_setopt(curl_ptr, CURLOPT_HTTPHEADER, c_loc(req_headers))
-
-    !! send POST request
-    curl_code = curl_easy_perform(curl_ptr)
-    
-  else
-    print *, "bye!"
-  end if

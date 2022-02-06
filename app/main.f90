@@ -1,6 +1,6 @@
 program main
-  use lightspeed_stream_maker, only: say_hello
+  use lightspeed_stream_maker, only: thingy
   implicit none
 
-  call say_hello()
+  call thingy()
 end program main
