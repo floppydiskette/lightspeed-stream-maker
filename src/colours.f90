@@ -9,6 +9,14 @@ module colours
 		select case (c)
 			case ('RED')
 				print *, achar(27) // '[31m'
+			case ('GRN')
+				print *, achar(27) // '[32m'
+			case ('BLU')
+				print *, achar(27) // '[34m'
+			case ('PUR')
+				print *, achar(27) // '[35m'
+			case ('CYA')
+				print *, achar(27) // '[36m'
 			case ('BLK') !! BLK here means BLANK, aka default text
 				print *, achar(27) // '[0m'
 			case ('   ') !! three spaces to reset (:
