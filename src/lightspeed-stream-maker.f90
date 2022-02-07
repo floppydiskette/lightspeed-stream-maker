@@ -26,28 +26,28 @@ module lightspeed_stream_maker
 
 
     !! prompt user for username and password
-    colour('CYA')
+    call colour('CYA')
     print *, 'please enter email:'
-    colour('BLK')
+    call colour('BLK')
     read *, buf
     email = trim(buf)
-    colour('CYA')
+    call colour('CYA')
     print *, 'please enter password:'
-    colour('BLK')
+    call colour('BLK')
     read *, buf
     password = trim(buf)
-    colour('CYA')
+    call colour('CYA')
     print *, 'please enter desired username:'
-    colour('BLK')
+    call colour('BLK')
     read *, buf
     username = trim(buf)
 
-    colour('GRN')
+    call colour('GRN')
     print *, "email: " // trim(email)
     print *, "password: " // trim(password)
     print *, "username: " // trim(username)
     print *, "is this correct? (1 for yes, 0 for no)"
-    colour('BLK')
+    call colour('BLK')
     read(*, *) answer
 
     if (answer == 1) then
@@ -62,12 +62,12 @@ module lightspeed_stream_maker
 
       buf = "POST -H '" // req_headers // "' -d '" // req_body // "' '" // url // req_path // "'"
       !! make request
-      colour('YEL')
+      call colour('YEL')
       json = curl2(buf)
 
       call json%get('token', token, found)
       if (.not. found) then
-        colour('RED')
+        call colour('RED')
         call json%get('type', tmp_one, found)
         if (found) then
           print *, "error: " // tmp_one
@@ -87,9 +87,9 @@ module lightspeed_stream_maker
 
 
       !! prompt user for invite code
-      colour('CYA')
+      call colour('CYA')
       print *, 'please enter invite code: '
-      colour('BLK')
+      call colour('BLK')
       read *, invite_code
 
       req_body = '{"invite":"' // trim(invite_code) // '"}'
@@ -98,12 +98,12 @@ module lightspeed_stream_maker
       buf = "PUT -H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
 
       !! final request B)
-      colour('YEL')
+      call colour('YEL')
       json = curl2(buf)
 
       call json%get('ftl_id', ftl_id, found)
       if (.not. found) then
-        colour('RED')
+        call colour('RED')
         call json%get('type', tmp_one, found)
         if (found) then
           print *, "error: " // tmp_one
@@ -115,7 +115,7 @@ module lightspeed_stream_maker
 
       call json%get('token', token, found)
       if (.not. found) then
-        colour('RED')
+        call colour('RED')
         call json%get('type', tmp_one, found)
         if (found) then
           print *, "error: " // tmp_one
@@ -125,16 +125,16 @@ module lightspeed_stream_maker
         return
       end if
 
-      colour('GRN')
+      call colour('GRN')
       print *, ""
       print *, "if all went well, your stream should now be available at https://web.demo.lightspeed.tv/" // username
       print *, "your stream key is: " // ftl_id // "-" // token
 
-      colour('CYA')
+      call colour('CYA')
       print *, "bye!"
       
     else
-      colour('CYA')
+      call colour('CYA')
       print *, "bye!"
     end if
   end subroutine thingy
