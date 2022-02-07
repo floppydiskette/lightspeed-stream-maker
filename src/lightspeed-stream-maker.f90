@@ -1,16 +1,23 @@
 module lightspeed_stream_maker
-  use curl_fortran, only: curl
+  use funny, only: curl2
+  use json_module
   implicit none
   private
 
   public :: thingy
   contains
   subroutine thingy
+    use funny, only: curl2
+    use json_module
     implicit none
     integer :: answer, len
     character(len=:), allocatable :: req_body, req_path, req_headers, find, url
-    character(len=:), allocatable :: token, ftl_id
-    character(len=256) :: username, password, email, invite_code, cmd, response
+    character(len=:), allocatable :: token, ftl_id, tmp_one, tmp_two
+    character(len=256) :: username, password, email, invite_code, cmd
+    type(json_file) :: json
+    logical :: found
+
+    call json%initialize()
 
     !! we need to send all requests to https://demo.lightspeed.tv/
     url = 'https://demo.lightspeed.tv/'
@@ -40,44 +47,29 @@ module lightspeed_stream_maker
       !! string for req headers
       req_headers = "Content-Type: application/json"
 
-      cmd = "-H '" // req_headers // "' -d '" // req_body // "' '" // url // req_path // "'"
-      !!print *, cmd
+      cmd = "POST -H '" // req_headers // "' -d '" // req_body // "' '" // url // req_path // "'"
+      print *, cmd
       !! make request
-      response = curl('POST', cmd)
-      print *, response
+      json = curl2(cmd)
 
-      !! get everything after token":"
-      find = '"token":"'
-      if (index(response, find) == 0) then
-        print *, "error: could not find token"
-        print *, "reason: " // response
+      call json%get('token', token, found)
+      if (.not. found) then
+        call json%get('type', tmp_one, found)
+        if (found) then
+          print *, "error: " // tmp_one
+        else
+          print *, "error: unknown"
+        endif
         return
-      else
-        !! get length of response
-        len = len_trim(response)
-        response = response(index(response, find) + len_trim(find) : len)
       end if
-
-      !! get everything before ","name":"
-      find = '" "name":"'
-      if (index(response, find) == 0) then
-        print *, "error: could not find name"
-        return
-      else
-        !! get length of response
-        len = len_trim(response)
-        response = response(1 : index(response, find) - 1)
-      end if
-
-      token = response
 
       req_body = '{"username":"' // trim(username) // '"}'
       req_path = url // "users/@me"
 
-      cmd = "-H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
+      cmd = "PUT -H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
 
       !! make a new request
-      response = curl('PUT ', cmd)
+      json = curl2(cmd)
 
 
       !! prompt user for invite code
@@ -87,53 +79,31 @@ module lightspeed_stream_maker
       req_body = '{"invite":"' // trim(invite_code) // '"}'
       req_path = url // "streams"
 
-      cmd = "-H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
+      cmd = "PUT -H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
 
       !! final request B)
-      response = curl('PUT ', cmd)
+      json = curl2(cmd)
 
-      !! get everything after "ftl_id":"
-      find = '"ftl_id":"'
-      if (index(response, find) == 0) then
-        print *, "error: could not find ftl_id"
+      call json%get('ftl_id', ftl_id, found)
+      if (.not. found) then
+        call json%get('type', tmp_one, found)
+        if (found) then
+          print *, "error: " // tmp_one
+        else
+          print *, "error: unknown"
+        endif
         return
-      else
-        !! get length of response
-        len = len_trim(response)
-        ftl_id = response(index(response, find) + len_trim(find) : len)
       end if
 
-      !! get everything before ","token":"
-      find = '" "token":"'
-      if (index(ftl_id, find) == 0) then
-        print *, "error: could not find token"
+      call json%get('token', token, found)
+      if (.not. found) then
+        call json%get('type', tmp_one, found)
+        if (found) then
+          print *, "error: " // tmp_one
+        else
+          print *, "error: unknown"
+        endif
         return
-      else
-        !! get length of response
-        len = len_trim(ftl_id)
-        ftl_id = ftl_id(1 : index(ftl_id, find) - 1)
-      end if
-
-      !! get everything after "token":"
-      find = '" "token":"'
-      if (index(response, find) == 0) then
-        print *, "error: could not find token"
-        return
-      else
-        !! get length of response
-        len = len_trim(response)
-        token = response(index(response, find) + len_trim(find) : len)
-      end if
-
-      !! get everything before "}
-      find = '"}'
-      if (index(token, find) == 0) then
-        print *, "error: could not find }"
-        return
-      else
-        !! get length of response
-        len = len_trim(token)
-        token = token(1 : index(token, find) - 1)
       end if
 
       !! print *, "response: ", response
