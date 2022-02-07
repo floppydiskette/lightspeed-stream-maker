@@ -4,7 +4,7 @@ module lightspeed_stream_maker
   implicit none
   private
 
-  public :: thingy
+  public thingy
   contains
   subroutine thingy
     use funny, only: curl2
@@ -14,7 +14,7 @@ module lightspeed_stream_maker
     character(len=:), allocatable :: req_body, req_path, req_headers, find, url
     character(len=:), allocatable :: token, ftl_id, tmp_one, tmp_two
     character(len=:), allocatable :: username, password, email, invite_code
-    character(len=256) :: cmd, buf
+    character(len=256) :: buf
     type(json_file) :: json
     logical :: found
 
@@ -51,10 +51,9 @@ module lightspeed_stream_maker
       !! string for req headers
       req_headers = "Content-Type: application/json"
 
-      cmd = "POST -H '" // req_headers // "' -d '" // req_body // "' '" // url // req_path // "'"
-      print *, cmd
+      buf = "POST -H '" // req_headers // "' -d '" // req_body // "' '" // url // req_path // "'"
       !! make request
-      json = curl2(cmd)
+      json = curl2(buf)
 
       call json%get('token', token, found)
       if (.not. found) then
@@ -70,10 +69,10 @@ module lightspeed_stream_maker
       req_body = '{"username":"' // trim(username) // '"}'
       req_path = url // "users/@me"
 
-      cmd = "PUT -H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
+      buf = "PUT -H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
 
       !! make a new request
-      json = curl2(cmd)
+      json = curl2(buf)
 
 
       !! prompt user for invite code
@@ -83,10 +82,10 @@ module lightspeed_stream_maker
       req_body = '{"invite":"' // trim(invite_code) // '"}'
       req_path = url // "streams"
 
-      cmd = "PUT -H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
+      buf = "PUT -H 'x-session-token:" // token // "' -H '" // req_headers // "' -d '" // req_body // "' '" // req_path // "'"
 
       !! final request B)
-      json = curl2(cmd)
+      json = curl2(buf)
 
       call json%get('ftl_id', ftl_id, found)
       if (.not. found) then
