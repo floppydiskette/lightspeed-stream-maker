@@ -13,7 +13,8 @@ module lightspeed_stream_maker
     integer :: answer, len
     character(len=:), allocatable :: req_body, req_path, req_headers, find, url
     character(len=:), allocatable :: token, ftl_id, tmp_one, tmp_two
-    character(len=256) :: username, password, email, invite_code, cmd
+    character(len=:), allocatable :: username, password, email, invite_code
+    character(len=256) :: cmd, buf
     type(json_file) :: json
     logical :: found
 
@@ -25,11 +26,14 @@ module lightspeed_stream_maker
 
     !! prompt user for username and password
     print *, 'please enter email:'
-    read *, email
+    read *, buf
+    email = trim(buf)
     print *, 'please enter password:'
-    read *, password
+    read *, buf
+    password = trim(buf)
     print *, 'please enter desired username:'
-    read *, username
+    read *, buf
+    username = trim(buf)
 
     print *, "email: " // trim(email)
     print *, "password: " // trim(password)
